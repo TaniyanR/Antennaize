@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/bootstrap.php';
+function save_rank_cache(int $aid,string $key,array $payload):void{$s=db()->prepare('INSERT INTO rank_cache(antenna_id,cache_key,payload,generated_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE payload=VALUES(payload),generated_at=NOW()');$s->execute([$aid,$key,json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);}
+function rebuild_rankings():void{$ids=db()->query('SELECT id FROM antennas WHERE is_active=1')->fetchAll(PDO::FETCH_COLUMN);foreach($ids as $aid){foreach([24,168] as $h){$s=db()->prepare("SELECT a.id,a.title,a.url,COUNT(e.id) score FROM articles a LEFT JOIN access_events e ON e.article_id=a.id AND e.event_type='out' AND e.is_fraud=0 AND e.created_at>=DATE_SUB(NOW(),INTERVAL $h HOUR) WHERE a.antenna_id=? AND a.is_deleted=0 GROUP BY a.id ORDER BY score DESC,COALESCE(a.published_at,a.created_at) DESC LIMIT 100");$s->execute([(int)$aid]);save_rank_cache((int)$aid,$h===24?'popular24':'popular7',$s->fetchAll());}}}
