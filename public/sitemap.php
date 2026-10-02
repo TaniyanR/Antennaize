@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../app/bootstrap.php';
+$host=strtolower(preg_replace('/:\d+$/','',(string)($_SERVER['HTTP_HOST']??'')));$s=db()->prepare("SELECT id FROM antennas WHERE type='server' AND is_active=1 AND host=? LIMIT 1");$s->execute([$host]);$aid=(int)($s->fetchColumn()?:0);if(!$aid){http_response_code(404);exit;}header('Content-Type: application/xml; charset=utf-8');$q=db()->prepare('SELECT id,updated_at FROM articles WHERE antenna_id=? AND is_deleted=0 ORDER BY COALESCE(published_at,created_at) DESC LIMIT 50000');$q->execute([$aid]);echo '<?xml version="1.0" encoding="UTF-8"?>';?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc><?=e('https://'.$host.'/')?></loc></url><?php foreach($q as $a):?><url><loc><?=e(base_url('public/relay.php?id='.(int)$a['id']))?></loc><lastmod><?=e(substr((string)$a['updated_at'],0,10))?></lastmod></url><?php endforeach;?></urlset>
