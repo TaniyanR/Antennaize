@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../app/bootstrap.php';
+header('Content-Type: application/json; charset=utf-8');header('Access-Control-Allow-Methods: GET');
+$aid=(int)($_GET['antenna']??0);$type=(string)($_GET['type']??'latest');if($aid<1){http_response_code(400);echo json_encode(['error'=>'antenna required']);exit;}
+try{if($type==='latest'){$s=db()->prepare('SELECT id,title,url,image_url,published_at FROM articles WHERE antenna_id=? AND is_deleted=0 ORDER BY COALESCE(published_at,created_at) DESC LIMIT 100');$s->execute([$aid]);$data=$s->fetchAll();}elseif(in_array($type,['popular24','popular7'],true)){$s=db()->prepare('SELECT payload FROM rank_cache WHERE antenna_id=? AND cache_key=?');$s->execute([$aid,$type]);$data=json_decode((string)($s->fetchColumn()?:'[]'),true)?:[];}elseif($type==='mutual'){$s=db()->prepare('SELECT id,name,feed_url,display_limit FROM mutual_rss WHERE antenna_id=? AND is_active=1 ORDER BY id');$s->execute([$aid]);$data=$s->fetchAll();}else{throw new RuntimeException('unknown type');}echo json_encode(['antenna_id'=>$aid,'type'=>$type,'data'=>$data],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);}catch(Throwable){http_response_code(500);echo json_encode(['error'=>'temporary unavailable']);}
