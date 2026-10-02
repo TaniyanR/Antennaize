@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../app/bootstrap.php';
+start_secure_session();if(!empty($_SESSION['admin_id'])){header('Location: index.php');exit;}$error='';
+if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$s=db()->prepare('SELECT * FROM admins WHERE username=? LIMIT 1');$s->execute([trim((string)($_POST['username']??''))]);$a=$s->fetch();if($a&&password_verify((string)($_POST['password']??''),(string)$a['password_hash'])){session_regenerate_id(true);$_SESSION['admin_id']=(int)$a['id'];header('Location: index.php');exit;}$error='ログイン情報が正しくありません';}
+?><!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Antennaize Login</title><style>body{font-family:system-ui,sans-serif;background:#f5f6f8}.box{max-width:420px;margin:10vh auto;background:#fff;padding:28px;border-radius:12px}label{display:block;margin:14px 0}input{width:100%;box-sizing:border-box;padding:11px}.error{color:#b00020}</style></head><body><main class="box"><h1>Antennaize</h1><?php if($error):?><p class="error"><?=e($error)?></p><?php endif;?><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf_token())?>"><label>ユーザー名<input name="username" required></label><label>パスワード<input type="password" name="password" required></label><button>ログイン</button></form></main></body></html>
