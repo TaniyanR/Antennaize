@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../app/bootstrap.php';
+$host=strtolower(preg_replace('/:\d+$/','',(string)($_SERVER['HTTP_HOST']??'')));$s=db()->prepare("SELECT * FROM antennas WHERE type='server' AND is_active=1 AND host=? LIMIT 1");$s->execute([$host]);$antenna=$s->fetch();if(!$antenna){http_response_code(404);echo '<!doctype html><meta charset="utf-8"><title>404</title><h1>404 Not Found</h1>';exit;}
+$s=db()->prepare('SELECT id,title,url,image_url,published_at FROM articles WHERE antenna_id=? AND is_deleted=0 ORDER BY COALESCE(published_at,created_at) DESC LIMIT 60');$s->execute([(int)$antenna['id']]);$articles=$s->fetchAll();$r=db()->prepare("SELECT payload FROM rank_cache WHERE antenna_id=? AND cache_key='popular24'");$r->execute([(int)$antenna['id']]);$popular=json_decode((string)($r->fetchColumn()?:'[]'),true)?:[];$template=preg_replace('/[^a-z0-9_-]/i','',(string)$antenna['template_key'])?:'standard';$layout=__DIR__.'/../resources/templates/'.$template.'/layout.php';if(!is_file($layout))$layout=__DIR__.'/../resources/templates/standard/layout.php';require $layout;
